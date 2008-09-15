@@ -74,8 +74,6 @@ sub bindings_Color
     );
 
     # Key Bindings
-    #owl::command('bindkey recv "C-d s" command savecolors');
-    #owl::command('bindkey recv "C-d l" command loadcolors');
     owl::command('bindkey recv "c" command start-command setcolor ');
 }
 
@@ -112,13 +110,14 @@ sub createFilters($) {
             my @classInst = ();
 
             foreach my $c (sort keys %{ $workingColorMap{$mode} }) {
-                $c =~ s/([+*])/\\$1/g;
+                my $c_esc = $c;
+                $c_esc =~ s/([+*])/\\$1/g;
                 my @instances = (sort keys %{ $workingColorMap{$mode}{$c} });
                 my $cHasStar = grep(/\*/, @instances);
 
                 if ($cHasStar && @instances == 1) {
                     # Collect classes that are only globally colored.
-                    push(@class, $c) if ($workingColorMap{$mode}{$c}{'*'} eq $color);
+                    push(@class, $c_esc) if ($workingColorMap{$mode}{$c}{'*'} eq $color);
                 } else {
                     # Collect classes that have varying color for instances.
                     if ($cHasStar && $workingColorMap{$mode}{$c}{'*'} eq $color) {
@@ -128,7 +127,7 @@ sub createFilters($) {
                             $i =~ s/([+*])/\\$1/g;
                             push(@cInstances, $i);
                         }
-                        push(@classInst, 'class ^'.$c.'(.d)*$ and not instance ^('.join('|',@cInstances).')(.d)*$') if (@cInstances);
+                        push(@classInst, 'class ^'.$c_esc.'(.d)*$ and not instance ^('.join('|',@cInstances).')(.d)*$') if (@cInstances);
                     } else {
                         my @cInstances;
                         foreach my $i (@instances) {
@@ -136,7 +135,7 @@ sub createFilters($) {
                             $i =~ s/([+*])/\\$1/g;
                             push(@cInstances, $i);
                         }
-                        push(@classInst, 'class ^'.$c.'(.d)*$ and instance ^('.join('|',@cInstances).')(.d)*$') if (@cInstances);
+                        push(@classInst, 'class ^'.$c_esc.'(.d)*$ and instance ^('.join('|',@cInstances).')(.d)*$') if (@cInstances);
                     }
                 }
             }
@@ -209,7 +208,7 @@ sub createFilters($) {
         }
         #######################################################################
 
-        my $filter = $color.(($fgbg eq 'bg') ? '-bg' : '');
+        my $filter = 'ColorUtils::'.$color.(($fgbg eq 'bg') ? '-bg' : '');
         my $filterspec = "$filter ".(($fgbg eq 'bg') ? '-b' : '-c')." $color ";
         if (scalar(@strs)) {
             BarnOwl::filter("$filterspec ( "
