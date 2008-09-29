@@ -21,6 +21,8 @@ use Getopt::Long;
 #Run this on start and reload. Adds styles, sets style to start.
 ################################################################################
 our @colorList = ();
+my $config_dir = BarnOwl::get_config_dir();
+
 sub onStart {
     @colorList = ('black','red','green','yellow',
                   'blue','magenta','cyan','white');
@@ -423,9 +425,9 @@ sub save($) {
     return unless (grep(/^[fb]g$/, $fgbg));
 
     if ($fgbg eq 'bg') {
-        open(COLORS, ">$ENV{HOME}/.owl/colormap_bg");
+        open(COLORS, ">$config_dir/colormap_bg");
     } else {
-        open(COLORS, ">$ENV{HOME}/.owl/colormap");
+        open(COLORS, ">$config_dir/colormap");
     }
 
     my $type = 'zephyr';
@@ -475,10 +477,10 @@ sub load($)
 
     # Parse the color file.
     if ($fgbg eq 'bg') {
-        open(COLORS, "<$ENV{HOME}/.owl/colormap_bg") || return;
+        open(COLORS, "<$config_dir/colormap_bg") || return;
     }
     else {
-        open(COLORS, "<$ENV{HOME}/.owl/colormap") || return;
+        open(COLORS, "<$config_dir/colormap") || return;
     }
 
 
