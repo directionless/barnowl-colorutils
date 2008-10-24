@@ -251,8 +251,9 @@ sub cmd_setcolor {
         'instance' => \$inst,
     );
 
+    return unless ((scalar @ARGV) > 0);
     my $color = shift @ARGV;
-
+    
     if ($color =~ /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i) {
         $color = find_color(hex($1),hex($2),hex($3));
     }
