@@ -16,15 +16,28 @@ This module implements easy to use color suppot for barnowl.
 =cut
 
 use Getopt::Long;
+################################################################################
+## Color state.
+################################################################################
+our @colorList;
+our %currentColorMap;
+our %savedColorMap;
+our %mode2Protocol = ('zephyr' => 'zephyr',
+		      'zephyr-personal' => 'zephyr',
+		      'aim' => 'aim',
+		      'jabber' => 'jabber',
+                      'IRC' => 'IRC',
+		      'loopback' => 'loopback');
+
 
 ################################################################################
 #Run this on start and reload. Adds styles, sets style to start.
 ################################################################################
-our @colorList;
-@colorList ||= ();
 my $config_dir = BarnOwl::get_config_dir();
 
 sub onStart {
+    %currentColorMap = ();
+    %savedColorMap = ();
     genColorList();
     bindings_Color();
     cmd_load();
@@ -83,18 +96,6 @@ sub bindings_Color
     owl::command('bindkey recv "c" command start-command setcolor ');
 }
 
-
-################################################################################
-## Color state.
-################################################################################
-our %currentColorMap = ();
-our %savedColorMap = ();
-our %mode2Protocol = ('zephyr' => 'zephyr',
-		      'zephyr-personal' => 'zephyr',
-		      'aim' => 'aim',
-		      'jabber' => 'jabber',
-                      'IRC' => 'IRC',
-		      'loopback' => 'loopback');
 
 ################################################################################
 ## Loading function
