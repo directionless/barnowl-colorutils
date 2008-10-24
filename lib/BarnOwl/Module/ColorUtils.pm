@@ -20,22 +20,26 @@ use Getopt::Long;
 ################################################################################
 #Run this on start and reload. Adds styles, sets style to start.
 ################################################################################
-our @colorList = ();
+our @colorList;
+@colorList ||= ();
 my $config_dir = BarnOwl::get_config_dir();
 
 sub onStart {
-    @colorList = ('black','red','green','yellow',
+    genColorList();
+    bindings_Color();
+    cmd_load();
+}
+$BarnOwl::Hooks::startup->add(\&onStart);
+
+sub genColorList() {
+   @colorList = ('black','red','green','yellow',
                   'blue','magenta','cyan','white');
     if ( *BarnOwl::getnumcolors{CODE} ) {
         for (my $i = 8; $i < BarnOwl::getnumcolors(); $i++) {
             push(@colorList,$i);
         }
     }
-
-    bindings_Color();
-    cmd_load();
 }
-$BarnOwl::Hooks::startup->add(\&onStart);
 
 ################################################################################
 #Register BarnOwl commands and default keybindings.
