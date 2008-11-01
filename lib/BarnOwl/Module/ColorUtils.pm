@@ -104,6 +104,7 @@ sub createFilters($) {
     # Prepare the color filters.
     my $fgbg = shift;
     return unless (grep(/^[fb]g$/, $fgbg));
+    my $currentView = owl::getview();
 
     my %workingColorMap = %{ $currentColorMap{$fgbg} };
 
@@ -222,7 +223,7 @@ sub createFilters($) {
                            . join(' or ', @strs)
                            . ' )');
         } else {
-            next if (owl::getview() eq $filter);
+            next if ($currentView eq $filter);
             BarnOwl::_remove_filter($filter);
         }
     }
@@ -305,11 +306,13 @@ sub unset($$) {
     if ($type eq 'zephyr') {
         if (isZPersonal($m)) {
             my $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+            $sender =~ s/ /./g;
             delete $currentColorMap{$fgbg}{'zephyr-personal'}{$sender};
         } else {
             my $class = lc($m->class);
             my $instance = ($bInst || ($class eq 'message')) ? lc($m->instance) : '*';
-
+            $class =~ s/ /./g;
+            $instance =~ s/ /./g;
             if ($instance eq '*') {
                 $currentColorMap{$fgbg}{$type}{$class}{$instance} = 'default';
             } else {
@@ -319,7 +322,7 @@ sub unset($$) {
     } elsif ($type eq 'aim' || $type eq 'jabber') {
         my $sender = (lc($m->direction) eq 'in') ? $m->sender : $m->recipient;
         $sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
-
+        $sender =~ s/ /./g;
         delete $currentColorMap{$fgbg}{$type}{$sender};
     } elsif ($type eq 'loopback') {
         delete $currentColorMap{$fgbg}{$type};
@@ -339,14 +342,18 @@ sub setColor($$$)
     if ($type eq 'zephyr') {
 	if (isZPersonal($m)) {
 	    my $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+            $sender =~ s/ /./g;
 	    $currentColorMap{$fgbg}{'zephyr-personal'}{$sender} = $color;
 	} else {
 	    my $class = lc($m->class);
 	    my $instance = ($bInst || ($class eq 'message')) ? lc($m->instance) : '*';
+            $class =~ s/ /./g;
+            $instance =~ s/ /./g;
 	    $currentColorMap{$fgbg}{$type}{$class}{$instance} = $color;
 	}
     } elsif ($type eq 'aim' || $type eq 'jabber') {
 	my $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+        $sender =~ s/ /./g;
 	$sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
 	$currentColorMap{$fgbg}{$type}{$sender} = $color;
     } elsif ($type eq 'loopback') {
@@ -367,6 +374,7 @@ sub restore($$) {
     if ($type eq 'zephyr') {
 	if (isZPersonal($m)) {
 	    $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+            $sender =~ s/ /./g;
 	    if ($oldColor = ($savedColorMap{$fgbg}{'zephyr-personal'}{$sender}) || '') {
 		$currentColorMap{$fgbg}{'zephyr-personal'}{$sender} = $oldColor;
 	    } else {
@@ -382,7 +390,8 @@ sub restore($$) {
                      && (($savedColorMap{$fgbg}{$type}{$class}{$instance} || '') ne ($currentColorMap{$fgbg}{$type}{$class}{$instance} || ''))))
 		? $instance
                   : '*';
-
+            $class =~ s/ /./g;
+            $instance =~ s/ /./g;
 	    if ($oldColor = ($savedColorMap{$fgbg}{$type}{$class}{$instance} || '')) {
 		$currentColorMap{$fgbg}{$type}{$class}{$instance} = $oldColor;
 	    } else {
@@ -392,6 +401,7 @@ sub restore($$) {
     } elsif ($type eq 'aim' || $type eq 'jabber') {
 	$sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
 	$sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
+        $sender =~ s/ /./g;
 	if ($oldColor = ($savedColorMap{$fgbg}{$type}{$sender} || '')) {
 	    $currentColorMap{$fgbg}{$type}{$sender} = $oldColor;
 	} else {
