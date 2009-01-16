@@ -26,7 +26,7 @@ our %mode2Protocol = ('zephyr' => 'zephyr',
 		      'zephyr-personal' => 'zephyr',
 		      'aim' => 'aim',
 		      'jabber' => 'jabber',
-                      'IRC' => 'IRC',
+                      'irc' => 'IRC',
 		      'loopback' => 'loopback');
 
 
@@ -210,6 +210,35 @@ sub createFilters($) {
             }
         }
         #######################################################################
+        $mode = 'irc';
+        {
+            my @servers = ();
+            my $sCount = 0;
+            foreach my $srv (sort keys %{ $workingColorMap{$mode} }) {
+                my @channels = ();
+                my $count = 0;
+                foreach my $chan (sort keys %{ $workingColorMap{$mode}{$srv} }) {
+                    next if ($workingColorMap{$mode}{$srv}{$chan} ne $color);
+                    $chan =~ s/([+*])/\\$1/g;
+                    push(@channels, $chan);
+                    $count++;
+                }
+                $srv =~ s/([+*])/\\$1/g;
+                if ($count) {
+                    push(@servers,
+                         ' ( server ^'.$srv.'$ and channel ^('.join('|',@channels).')$ )'
+                     );
+                    $sCount++;
+                }
+            }
+            if ($sCount) {
+                push(@strs,
+                     '( type ^'.$mode2Protocol{$mode}.'$'
+                       . ' and ( '. join(' or ', @servers)
+                         .' ) )');
+            }
+        }
+        #######################################################################
         $mode = 'loopback';
         {
             push(@strs, '( type ^'.$mode2Protocol{$mode}.'$ )') if (($workingColorMap{$mode} || '') eq $color);
@@ -259,7 +288,7 @@ sub cmd_setcolor {
 
     return unless ((scalar @ARGV) > 0);
     my $color = shift @ARGV;
-    
+
     if ($color =~ /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i) {
         $color = find_color(hex($1),hex($2),hex($3));
     }
@@ -356,6 +385,8 @@ sub setColor($$$)
         $sender =~ s/ /./g;
 	$sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
 	$currentColorMap{$fgbg}{$type}{$sender} = $color;
+    } elsif ($type eq 'irc') {
+        $currentColorMap{$fgbg}{$type}{$m->server}{$m->channel} = $color
     } elsif ($type eq 'loopback') {
 	$currentColorMap{$fgbg}{$type} = $color;
     }
@@ -453,7 +484,11 @@ sub save($) {
             if ($i eq '*'
                 || !($currentColorMap{$fgbg}{$type}{$c}{$i} eq ($currentColorMap{$fgbg}{$type}{$c}{'*'} || '')
                      || !$currentColorMap{$fgbg}{$type}{$c}{$i})) {
-                print COLORS "$c,$i,".($currentColorMap{$fgbg}{$type}{$c}{$i} ? $currentColorMap{$fgbg}{$type}{$c}{$i} : 'default')."\n";
+                print COLORS "$c,$i,"
+                  . ($currentColorMap{$fgbg}{$type}{$c}{$i}
+                       ? $currentColorMap{$fgbg}{$type}{$c}{$i}
+                       : 'default')
+                  . "\n";
             }
         }
     }
@@ -461,24 +496,52 @@ sub save($) {
     $type = 'zephyr-personal';
     print COLORS "MODE: $type\n";
     foreach my $s (sort keys %{ $currentColorMap{$fgbg}{$type} }) {
-        print COLORS "$s,".($currentColorMap{$fgbg}{$type}{$s} ? $currentColorMap{$fgbg}{$type}{$s} : 'default')."\n";
+        print COLORS "$s,"
+           . ($currentColorMap{$fgbg}{$type}{$s}
+                ? $currentColorMap{$fgbg}{$type}{$s}
+                : 'default')
+           . "\n";
     }
 
     $type = 'aim';
     print COLORS "MODE: $type\n";
     foreach my $s (sort keys %{ $currentColorMap{$fgbg}{$type} }) {
-        print COLORS "$s,".($currentColorMap{$fgbg}{$type}{$s} ? $currentColorMap{$fgbg}{$type}{$s} : 'default')."\n";
+        print COLORS "$s,"
+          . ($currentColorMap{$fgbg}{$type}{$s}
+               ? $currentColorMap{$fgbg}{$type}{$s}
+               : 'default')
+          . "\n";
     }
 
     $type = 'jabber';
     print COLORS "MODE: $type\n";
     foreach my $s (sort keys %{ $currentColorMap{$fgbg}{$type} }) {
-        print COLORS "$s,".($currentColorMap{$fgbg}{$type}{$s} ? $currentColorMap{$fgbg}{$type}{$s} : 'default')."\n";
+        print COLORS "$s,"
+          . ($currentColorMap{$fgbg}{$type}{$s}
+               ? $currentColorMap{$fgbg}{$type}{$s}
+               : 'default')
+          . "\n";
     }
+
+    $type = 'irc';
+    print COLORS "MODE: $type\n";
+    foreach my $srv (sort keys %{ $currentColorMap{$fgbg}{$type} }) {
+        foreach my $chan (sort keys %{ $currentColorMap{$fgbg}{$type}{$srv} }) {
+            print COLORS "$srv,$chan,"
+              . ($currentColorMap{$fgbg}{$type}{$srv}{$chan}
+                   ? $currentColorMap{$fgbg}{$type}{$srv}{$chan}
+                   : 'default')
+              . "\n";
+        }
+    }
+
 
     $type = 'loopback';
     print COLORS "MODE: $type\n";
-    print COLORS ($currentColorMap{$fgbg}{$type} ? $currentColorMap{$fgbg}{$type} : 'default')."\n";
+    print COLORS ($currentColorMap{$fgbg}{$type}
+                    ? $currentColorMap{$fgbg}{$type}
+                    : 'default')
+      . "\n";
 
     close(COLORS);
 }
@@ -513,6 +576,8 @@ sub load($)
                 $mode = 'aim';
             } elsif (lc($1) eq "jabber") {
                 $mode = 'jabber';
+            } elsif (lc($1) eq "irc") {
+                $mode = 'irc';
             } elsif (lc($1) eq "loopback") {
                 $mode = 'loopback';
             } else {
@@ -527,6 +592,9 @@ sub load($)
         } elsif (($mode eq 'aim' || $mode eq 'jabber') && $line =~ /^(.+),(b?)(black|red|green|yellow|blue|magenta|cyan|white|default|[0-9]{1,3})$/i) {
             $currentColorMap{$fgbg}{$mode}{lc($1)} = lc($3);
             $savedColorMap{$fgbg}{$mode}{lc($1)}   = lc($3);
+        } elsif (($mode eq 'irc') && $line =~ /^(.+),(.+),(b?)(black|red|green|yellow|blue|magenta|cyan|white|default|[0-9]{1,3})$/i) {
+            $currentColorMap{$fgbg}{$mode}{lc($1)}{lc($2)} = lc($4);
+            $savedColorMap{$fgbg}{$mode}{lc($1)}{lc($2)}   = lc($4);
         } elsif ($mode eq 'loopback' && $line =~ /^(b?)(black|red|green|yellow|blue|magenta|cyan|white|default|[0-9]{1,3})$/i) {
             $currentColorMap{$fgbg}{$mode} = lc($2);
             $savedColorMap{$fgbg}{$mode}   = lc($2);
