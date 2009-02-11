@@ -64,7 +64,7 @@ sub bindings_Color
         setcolor => \&cmd_setcolor,
         {
             summary => "Change the color for this sender (personals) or class/muc (or instance if zephyr -c message)",
-            usage   => "setcolor [-i] [-b] <color>",
+            usage   => "setcolor [-i] [-b] [color]",
             description => "Sets the foreground (or background) color for this kind of message.\n\n"
               . "The following options are available:\n\n"
               . " -i    Set the color for this instance of this zephyr class.\n\n"
@@ -75,6 +75,7 @@ sub bindings_Color
               . "The following special values are also allowed:\n"
               . "  default    uncolors the message\n"
               . "  restore    restores the last saved color for this message\n"
+              . "If no color is specified, the current color is displayed.\n"
         }
     );
     BarnOwl::new_command(
@@ -286,7 +287,10 @@ sub cmd_setcolor {
         'instance' => \$inst,
     );
 
-    return unless ((scalar @ARGV) > 0);
+    if ((scalar @ARGV) <= 0) {
+        BarnOwl::message(sprintf("The current message is colored \"%s\".\n", getColor($inst, $fgbg)));
+        return;
+    }
     my $color = shift @ARGV;
 
     if ($color =~ /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i) {
@@ -386,12 +390,54 @@ sub setColor($$$)
 	$sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
 	$currentColorMap{$fgbg}{$type}{$sender} = $color;
     } elsif ($type eq 'irc') {
-        $currentColorMap{$fgbg}{$type}{$m->server}{$m->channel} = $color
+        $currentColorMap{$fgbg}{$type}{$m->server}{$m->channel} = $color;
     } elsif ($type eq 'loopback') {
 	$currentColorMap{$fgbg}{$type} = $color;
     }
 
     refreshView($fgbg);
+}
+
+sub getColor($$)
+{
+    my $bInst = shift;
+    my $fgbg = (shift || 0) ? 'bg' : 'fg';
+    my $m = owl::getcurmsg();
+    return "" unless $m;
+
+    my $type = lc($m->type);
+    if ($type eq 'zephyr') {
+	if (isZPersonal($m)) {
+	    my $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+            $sender =~ s/ /./g;
+            if (exists($currentColorMap{$fgbg}{'zephyr-personal'}{$sender})) {
+                return $currentColorMap{$fgbg}{'zephyr-personal'}{$sender};
+            }
+	} else {
+	    my $class = lc($m->class);
+	    my $instance = ($bInst || ($class eq 'message')) ? lc($m->instance) : '*';
+            $class =~ s/ /./g;
+            $instance =~ s/ /./g;
+            if (exists($currentColorMap{$fgbg}{$type}{$class}{$instance})) {
+                return $currentColorMap{$fgbg}{$type}{$class}{$instance};
+            }
+	}
+    } elsif ($type eq 'aim' || $type eq 'jabber') {
+	my $sender = lc((lc($m->direction) eq 'in') ? $m->sender : $m->recipient);
+        $sender =~ s/ /./g;
+	$sender = $m->recipient if ($type eq 'jabber' && lc($m->jtype) eq 'groupchat');
+        if (exists($currentColorMap{$fgbg}{$type}{$sender})) {
+            return $currentColorMap{$fgbg}{$type}{$sender};
+        }
+    } elsif ($type eq 'irc') {
+        if (exists($currentColorMap{$fgbg}{$type}{$m->server}{$m->channel})) {
+            return $currentColorMap{$fgbg}{$type}{$m->server}{$m->channel};
+        }
+    } elsif ($type eq 'loopback') {
+        if (exists($currentColorMap{$fgbg}{$type})) {
+            return $currentColorMap{$fgbg}{$type};
+        }
+    }
 }
 
 sub restore($$) {
