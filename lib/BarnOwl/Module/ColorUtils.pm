@@ -173,6 +173,7 @@ sub createFilters($) {
             if ($count) {
                 push(@strs,
                      '( type ^'.$mode2Protocol{$mode}.'$ and ( ( class ^message$ and instance ^personal$ ) or class ^login$ )'
+                     . ' and ( not body ^CC )'
                      . ' and ( sender ^('.$senders.')$ or recipient ^('.$senders.')$ ) )');
             }
         }
