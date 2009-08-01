@@ -250,7 +250,7 @@ sub createFilters($) {
         my $filter = 'ColorUtils::'.$color.(($fgbg eq 'bg') ? '-bg' : '');
         my $filterspec = "$filter ".(($fgbg eq 'bg') ? '-b' : '-c')." $color ";
         if (scalar(@strs)) {
-            BarnOwl::filter("$filterspec ( "
+            BarnOwl::command("filter $filterspec ( "
                            . join(' or ', @strs)
                            . ' )');
         } else {
