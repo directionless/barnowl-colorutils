@@ -502,8 +502,8 @@ sub refreshView($) {
     return unless (grep(/^[fb]g$/, $fgbg));
 
     createFilters($fgbg);
-    if ( *BarnOwl::refresh_view{CODE} ) {
-        BarnOwl::refresh_view();
+    if ( *BarnOwl::redisplay{CODE} ) {
+        BarnOwl::redisplay();
     } else {
         my $filter = owl::command("getview");
         my $style = owl::command("getstyle");
